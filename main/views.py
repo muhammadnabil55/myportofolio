@@ -1,0 +1,24 @@
+from django.shortcuts import render
+
+from main.models import Experience
+
+
+def show_main(request):
+    context = {
+        "name": "M. Nabil Hariri",
+        "npm": "2506602302",
+        "study_program": "S1 Sistem Informasi",
+        "bio": (
+            "Mahasiswa Sistem Informasi Universitas Indonesia yang tertarik "
+            "pada kompetisi IT dan pemrograman intuitif."
+        ),
+    }
+    return render(request, "index.html", context)
+
+
+def show_experience(request):
+    context = {
+        "name": "M. Nabil Hariri",
+        "experience_list": Experience.objects.all(),
+    }
+    return render(request, "experience.html", context)
