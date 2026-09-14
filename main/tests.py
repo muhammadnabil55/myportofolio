@@ -3,9 +3,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from main.models import Experience
+from main.models import Certificate
+from datetime import date
 
-
-class MainTest(TestCase):
+class MainViewTest(TestCase):
     def setUp(self):
         self.experience = Experience.objects.create(
             title="Asisten Dosen PBP",
@@ -15,7 +16,6 @@ class MainTest(TestCase):
 
     def test_main_url_is_accessible(self):
         response = self.client.get(reverse("main:show_main"))
-
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "index.html")
         self.assertNotContains(response, self.experience.title)
@@ -23,8 +23,16 @@ class MainTest(TestCase):
 
     def test_nonexistent_page_returns_404(self):
         response = self.client.get("/halaman-yang-tidak-ada/")
-
         self.assertEqual(response.status_code, 404)
+
+
+class ExperienceTest(TestCase):
+    def setUp(self):
+        self.experience = Experience.objects.create(
+            title="Asisten Dosen PBP",
+            description="Membantu mahasiswa memahami pengembangan web.",
+            category="part-time",
+        )
 
     def test_experience_model(self):
         self.assertEqual(str(self.experience), "Asisten Dosen PBP")
@@ -33,7 +41,6 @@ class MainTest(TestCase):
 
     def test_experience_page(self):
         response = self.client.get(reverse("main:show_experience"))
-
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience.html")
         self.assertContains(response, self.experience.title)
@@ -45,14 +52,37 @@ class MainTest(TestCase):
     def test_empty_experience_page(self):
         Experience.objects.all().delete()
         response = self.client.get(reverse("main:show_experience"))
-
         self.assertContains(response, "Belum ada pengalaman yang ditambahkan.")
 
     def test_completed_experience(self):
         self.experience.ended_at = timezone.now()
         self.experience.save()
         response = self.client.get(reverse("main:show_experience"))
-
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, "Selesai")
         self.assertNotContains(response, "Sedang berlangsung")
+
+class CertificateTest(TestCase):
+    def setUp(self):
+        self.certificate = Certificate.objects.create(
+            title="Best Team in GEMASTIK 2026",
+            description="This competition is so tuff",
+            thumbnail="/static/img/dummy.png",
+            date_obtained=date(2030, 6, 7)
+        )
+
+    def test_certificate_page(self):
+        response = self.client.get(reverse("main:show_certificate"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "certificate.html")
+        self.assertContains(response, self.certificate.title)
+        self.assertContains(response, self.certificate.description)
+        self.assertContains(response, "7 June 2030")
+        self.assertContains(response, f'href="{reverse("main:show_main")}"')
+
+    def test_empty_certificate_page(self):
+        Certificate.objects.all().delete()
+        response = self.client.get(reverse("main:show_certificate"))
+
+        self.assertContains(response, "Belum ada sertifikat yang ditambahkan.")
