@@ -9,6 +9,7 @@ class Experience(models.Model):
         ('part-time', 'Part-Time'),
         ('full-time', 'Full-Time'),
         ('freelance', 'Freelance'),
+        ('seasonal', 'Seasonal'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -24,3 +25,12 @@ class Experience(models.Model):
     @property
     def is_ongoing(self):
         return self.ended_at is None
+
+class Certificate(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    thumbnail = models.URLField()
+    date_obtained = models.DateField()
+    def __str__(self):
+        return self.title
