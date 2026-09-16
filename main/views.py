@@ -69,7 +69,7 @@ def get_certificate_json(request):
     return HttpResponse(certificate_json, content_type="application/json")
 
 def delete_certificate(request, certificate_id):
-    certificate = get_object_or_404(Certificate, ck=certificate_id)
+    certificate = get_object_or_404(Certificate, id=certificate_id)
 
     if request.method == "POST":
         certificate.delete()

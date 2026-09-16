@@ -10,5 +10,5 @@ urlpatterns = [
     path("certificate/", show_certificate, name="show_certificate"),
     path("certificate/add/", create_certificate, name="create_certificate"),
     path("api/certificate/", get_certificate_json, name="get_certificate_json"),
-    path("certificate/<uuid:project_id>/delete/",delete_certificate,name="delete_certificate"),
+    path("certificate/<uuid:certificate_id>/delete/",delete_certificate,name="delete_certificate"),
 ]
