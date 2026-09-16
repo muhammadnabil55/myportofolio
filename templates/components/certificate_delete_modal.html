@@ -1,0 +1,43 @@
+<p class="certificate-status">
+    <button type="button"
+            class="button button-danger"
+            popovertarget="delete-certificate-{{ certificate.id }}"
+            aria-label="Hapus {{ certificate.title }}"
+            title="Hapus sertifikat">
+        Hapus Sertifikat
+    </button>
+</p>
+<div id="delete-certificate-{{ certificate.id }}"
+     class="certificate-delete-modal"
+     popover="auto"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="delete-certificate-title-{{ certificate.id }}">
+    <button type="button"
+            class="certificate-delete-modal__backdrop"
+            popovertarget="delete-certificate-{{ certificate.id }}"
+            popovertargetaction="hide"
+            aria-label="Tutup konfirmasi hapus"></button>
+    <div class="certificate-delete-modal__content">
+        <button type="button"
+                class="certificate-delete-modal__close"
+                popovertarget="delete-certificate-{{ certificate.id }}"
+                popovertargetaction="hide"
+                aria-label="Tutup konfirmasi hapus">×</button>
+        <h2 id="delete-certificate-title-{{ certificate.id }}">Hapus Sertifikat?</h2>
+        <p>
+            Apakah Anda yakin ingin menghapus
+            <strong>{{ certificate.title }}</strong>?
+        </p>
+        <div class="certificate-delete-modal__actions">
+            <button type="button"
+                    class="button button-secondary"
+                    popovertarget="delete-certificate-{{ certificate.id }}"
+                    popovertargetaction="hide">Batal</button>
+            <form method="post" action="{% url 'main:delete_certificate' certificate.id %}">
+                {% csrf_token %}
+                <button type="submit" class="button button-danger">Ya, Hapus</button>
+            </form>
+        </div>
+    </div>
+</div>
