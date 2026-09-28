@@ -11,11 +11,13 @@
                 <p class="section-kicker">Sertifikat yang saya raih</p>
                 <div class="certificate-header">
                     <h1>Certificate</h1>
-                    <a href="{% url 'main:create_certificate' %}"
-                       class="button certificate-add-button">
-                        <span aria-hidden="true">+</span>
-                        Tambah Sertifikat
-                    </a>
+                    {% if user.is_superuser %}
+                        <a href="{% url 'main:create_certificate' %}"
+                        class="button certificate-add-button">
+                            <span aria-hidden="true">+</span>
+                            Tambah Sertifikat
+                        </a>
+                    {% endif %}
                 </div>
                 <form method="get"
                       action="{% url 'main:show_certificate' %}"
@@ -44,7 +46,10 @@
                                     {% if certificate.certificate_url %}
                                         <a href="{{ certificate.certificate_url }}" class="button">Lihat sertifikat</a>
                                     {% endif %}
-                                    {% include "components/certificate_delete_modal.html" with certificate=certificate %}
+                                    {% if user.is_superuser %}
+                                        {% include "components/certificate_star.html" with certificate=certificate %}
+                                        {% include "components/certificate_delete_modal.html" with certificate=certificate %}
+                                    {% endif %}
                                 </div>
                             </div>
                         </article>
