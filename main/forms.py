@@ -1,5 +1,6 @@
 from django.forms import DateInput, ModelForm, TextInput, Textarea, URLInput
-
+from django.core.exceptions import ValidationError
+from django.utils.html import strip_tags
 from main.models import Certificate
 
 class CertificateForm(ModelForm):
@@ -43,3 +44,15 @@ class CertificateForm(ModelForm):
                 }
             ),
         }
+    
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data["title"]).strip()
+        if not title:
+            raise ValidationError("Nama proyek tidak boleh hanya berisi tag HTML.")
+        return title
+
+    def clean_tech_stack(self):
+        return strip_tags(self.cleaned_data["tech_stack"]).strip()
+
+    def clean_description(self):
+        return strip_tags(self.cleaned_data["description"]).strip()

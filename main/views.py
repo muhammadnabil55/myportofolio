@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib import messages
 from django.core import serializers
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from main.forms import CertificateForm
 from main.models import Experience, Certificate
@@ -10,8 +10,9 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.shortcuts import redirect, render
 import datetime
-from django.contrib.auth.decorators import login_required  
-from django.core.exceptions import PermissionDenied        
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.views.decorators.http import require_POST 
 
 
 def show_main(request):
@@ -37,19 +38,12 @@ def show_experience(request):
     return render(request, "experience.html", context)
 
 def show_certificate(request):
-    json_response = get_certificate_json(request)
-
-    certificate = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    certificate = [cert.object for cert in certificate]
     title_query = request.GET.get("title", "").strip()
 
     context = {
         "name": "M. Nabil Hariri",
-        "certificate_list": certificate,
         "title_query": title_query,
+        "form": CertificateForm(),
     }
     return render(request, "certificate.html", context)
 
@@ -73,15 +67,32 @@ def create_certificate(request):
 
 def get_certificate_json(request):
     title_query = request.GET.get("title", "").strip()
-    certificate = Certificate.objects.all()
+    certificates = Certificate.objects.prefetch_related('starred_by').all()
 
     if title_query:
-        certificate = certificate.filter(title__icontains=title_query)
+        certificates = certificates.filter(title__icontains=title_query)
 
-    certificate_json = serializers.serialize(
-        "json", certificate, use_natural_foreign_keys=True
-    )
-    return HttpResponse(certificate_json, content_type="application/json")
+    # Konstruksi data JSON secara manual agar bisa menyisipkan logika Star
+    data = []
+    for certificate in certificates:
+        starred_users = certificate.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ", ".join([u.username for u in starred_users])
+
+        data.append({
+            "id": str(certificate.id),
+            "fields": {
+                "title": certificate.title,
+                "description": certificate.description,
+                "thumbnail": certificate.thumbnail,
+                "date_obtained": certificate.date_obtained,
+                "star_count": starred_users.count(),
+                "is_starred": is_starred,
+                "starred_by_names": starred_by_names,
+            }
+        })
+
+    return JsonResponse(data, safe=False)
 
 @login_required(login_url="/login/")
 def delete_certificate(request, certificate_id):
@@ -134,8 +145,8 @@ def logout_user(request):
     return response
 
 @login_required(login_url="/login/")
-def toggle_star(request, project_id):
-    certificate = get_object_or_404(Certificate, id=project_id)
+def toggle_star(request, certificate_id):
+    certificate = get_object_or_404(Certificate, id=certificate_id)
 
     if request.method == "POST":
         if request.user in certificate.starred_by.all():
@@ -143,4 +154,22 @@ def toggle_star(request, project_id):
         else:
             certificate.starred_by.add(request.user)
 
-    return redirect("main:show_projects")
+    return redirect("main:show_certificate")
+
+@require_POST
+def create_certificate_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan proyek."},
+            status=403,
+        )
+
+    form = CertificateForm(request.POST)
+    if form.is_valid():
+        certificate = form.save()
+        return JsonResponse(
+            {"message": "Proyek berhasil ditambahkan.", "id": str(certificate.id)},
+            status=201,
+        )
+
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
