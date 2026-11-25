@@ -39,10 +39,14 @@ def show_experience(request):
 
 def show_certificate(request):
     title_query = request.GET.get("title", "").strip()
+    certificate_list = Certificate.objects.prefetch_related("starred_by").order_by("title", "id")
+    if title_query:
+        certificate_list = certificate_list.filter(title__icontains=title_query)
 
     context = {
         "name": "M. Nabil Hariri",
         "title_query": title_query,
+        "certificate_list": certificate_list,
         "form": CertificateForm(),
     }
     return render(request, "certificate.html", context)

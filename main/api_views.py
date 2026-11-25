@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import (
     api_view, authentication_classes, permission_classes,
 )
@@ -8,14 +8,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from main.models import Certificate
-from main.permissions import IsPortfolioOwnerOrReadOnly, IsPortfolioOwnerOrEditorOrReadOnly
+from main.permissions import IsPortfolioOwnerOrReadOnly
 from main.serializers import CertificateSerializer
 
 
 @api_view(["GET", "HEAD", "POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsPortfolioOwnerOrReadOnly])
-@permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def certificate_list(request):
     if request.method in ("GET", "HEAD"):
         certificate = Certificate.objects.prefetch_related("starred_by").order_by("title", "id")
@@ -33,9 +32,8 @@ def certificate_list(request):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsPortfolioOwnerOrReadOnly])
-@permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def certificate_detail(request, certificate_id):
     certificate = get_object_or_404(
         Certificate.objects.prefetch_related("starred_by"), pk=certificate_id,
@@ -57,7 +55,7 @@ def certificate_detail(request, certificate_id):
     return Response(serializer.data)
 
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def certificate_star(request, certificate_id):
     certificate = get_object_or_404(Certificate, pk=certificate_id)
@@ -67,3 +65,11 @@ def certificate_star(request, certificate_id):
         certificate.starred_by.add(request.user)
     serializer = CertificateSerializer(certificate, context={"request": request})
     return Response(serializer.data)
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def api_logout(request):
+    if request.auth is not None:
+        request.auth.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

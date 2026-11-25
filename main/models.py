@@ -34,7 +34,7 @@ class Certificate(models.Model):
     thumbnail = models.URLField()
     date_obtained = models.DateField()
     starred_by = models.ManyToManyField(
-        User, related_name="starred_projects", blank=True
+        User, related_name="starred_certificates", blank=True
     )
     def __str__(self):
         return self.title

@@ -1,8 +1,10 @@
 import uuid
+from datetime import date
 
 from django.contrib.auth.models import Group, User
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient, APITestCase
 
 from main.models import Certificate
@@ -14,13 +16,19 @@ class CertificateAPITest(APITestCase):
         )
         self.visitor = User.objects.create_user(username="visitor", password="test-password")
         self.certificate = Certificate.objects.create(
-            title="Portfolio", description="My website", tech_stack="Django",
+            title="Portfolio",
+            description="My website",
+            thumbnail="https://example.com/portfolio.png",
+            date_obtained=date(2026, 1, 1),
         )
         self.list_url = reverse("api:certificate-list")
         self.detail_url = reverse("api:certificate-detail", args=[self.certificate.id])
         self.star_url = reverse("api:certificate-star", args=[self.certificate.id])
         self.payload = {
-            "title": "New certificate", "description": "A useful app", "thumbnail": "",
+            "title": "New certificate",
+            "description": "A useful app",
+            "thumbnail": "https://example.com/new-certificate.png",
+            "date_obtained": "2026-11-24",
         }
 
     def test_public_list_and_detail(self):
@@ -57,12 +65,42 @@ class CertificateAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(Certificate.objects.filter(pk=response.data["id"]).exists())
 
+    def test_owner_can_write_with_token(self):
+        token = Token.objects.create(user=self.owner)
+        client = APIClient()
+        response = client.post(
+            self.list_url,
+            self.payload,
+            format="json",
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Certificate.objects.filter(pk=response.data["id"]).exists())
+
+    def test_token_logout_deletes_token(self):
+        token = Token.objects.create(user=self.owner)
+        client = APIClient()
+        response = client.post(
+            reverse("api:api_token_logout"),
+            format="json",
+            HTTP_AUTHORIZATION=f"Token {token.key}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Token.objects.filter(pk=token.pk).exists())
+
+    def test_logout_requires_authentication(self):
+        response = self.client.post(
+            reverse("api:api_token_logout"),
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_validation(self):
         self.client.force_authenticate(user=self.owner)
         for changes, field in [
             ({"title": "   "}, "title"),
             ({"title": '<img src="x" onerror="alert(1)">'}, "title"),
-            ({"certificate_url": "javascript:alert(1)"}, "certificate_url"),
+            ({"thumbnail": "javascript:alert(1)"}, "thumbnail"),
         ]:
             response = self.client.post(self.list_url, {**self.payload, **changes}, format="json")
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
