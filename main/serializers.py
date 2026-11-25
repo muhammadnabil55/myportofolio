@@ -13,11 +13,14 @@ class CertificateSerializer(serializers.ModelSerializer):
         model = Certificate
         fields = [
             "id", "title", "description", "thumbnail",
-            "date_obtained", "starred_by",
+            "date_obtained", "starred_by", "star_count",
+            "is_starred", "starred_by_names",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "starred_by"]
 
     def validate_title(self, value):
+        if "<" in value or ">" in value:
+            raise serializers.ValidationError("Title cannot contain HTML tags.")
         value = strip_tags(value).strip()
         if not value:
             raise serializers.ValidationError("Title cannot be empty.")

@@ -57,7 +57,7 @@
                                      class="certificate-image">
                             {% endif %}
                             <h2>{{ certificate.title }}</h2>
-                            <span class="experience-category">{{ certificate.date_obtained }}</span>
+                            <span class="experience-category">{{ certificate.date_obtained|date:"j F Y" }}</span>
                             <p class="experience-description">{{ certificate.description }}</p>
                             <div class="certificate-card-actions">
                                 <div class="certificate-actions">
@@ -133,6 +133,11 @@
     function buildCertificateCardElement(certificate) {
         const article = document.createElement('article');
         article.className = 'experience-card';
+        const obtainedDate = certificate.date_obtained
+            ? new Intl.DateTimeFormat('en-GB', {
+                day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+            }).format(new Date(`${certificate.date_obtained}T00:00:00Z`))
+            : '';
         const image = certificate.thumbnail
             ? `<img src="${escapeHtml(certificate.thumbnail)}" alt="${escapeHtml(certificate.title)}" class="certificate-image">` : '';
         const star = IS_AUTHENTICATED
@@ -145,9 +150,10 @@
             ? `<button type="button" class="button button-danger" data-action="delete"
                 data-id="${escapeHtml(certificate.id)}">Delete</button>` : '';
         article.innerHTML = `${image}<h2>${escapeHtml(certificate.title)}</h2>
+            ${obtainedDate ? `<span class="experience-category">${escapeHtml(obtainedDate)}</span>` : ''}
             <p class="experience-description">${escapeHtml(certificate.description)}</p>
             <div class="certificate-card-actions"><div class="certificate-actions">
-            ${link}${star}${remove}</div></div>`;
+            ${star}${remove}</div></div>`;
         return article;
     }
 
@@ -201,7 +207,7 @@
         try {
             const fields = new FormData(certificateForm);
             const payload = Object.fromEntries([
-                'title', 'description', 'thumbnail',
+                'title', 'description', 'thumbnail', 'date_obtained',
             ].map(name => [name, fields.get(name)]));
             await writeCertificate(BASE_CERTIFICATE_ENDPOINT, 'POST', payload);
             certificateForm.reset();
